@@ -619,8 +619,9 @@
         loadMovie();
       };
 
-      const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
-      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 25;
+      const savedVolume = localStorage.getItem(VOLUME_KEY);
+      const parsedVolume = savedVolume === null ? NaN : Number(savedVolume);
+      const initialVolume = Number.isFinite(parsedVolume) ? parsedVolume : 25;
       const savedQuality = localStorage.getItem(QUALITY_KEY);
       const initialQuality = savedQuality || "high";
 
