@@ -605,20 +605,46 @@
         settingsPanel.hidden = !isOpen;
       };
 
-      const getInteractionTarget = () => {
-        const shadowRoot = player.shadowRoot;
-        return shadowRoot?.querySelector("#container canvas")
-          || shadowRoot?.querySelector("#container")
-          || player;
-      };
-
-      const dispatchPointerAsMouse = (type, point) => {
-        const target = getInteractionTarget();
-        if (!target || !point) {
+      const dispatchSyntheticInput = (type, point) => {
+        if (!point) {
           return;
         }
 
-        const event = new MouseEvent(type, {
+        const target = player;
+        const isMove = type === "move";
+        const pointerType = `pointer${type}`;
+        const mouseType = `mouse${type}`;
+        const buttons = isMove ? (activeTouchId === null ? 0 : 1) : (type === "up" ? 0 : 1);
+        const button = type === "up" ? 0 : 0;
+        const baseEvent = {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          clientX: point.clientX,
+          clientY: point.clientY,
+          screenX: point.screenX,
+          screenY: point.screenY,
+          button,
+          buttons,
+        };
+
+        if (window.PointerEvent) {
+          target.dispatchEvent(new PointerEvent(pointerType, {
+            ...baseEvent,
+            pointerId: 1,
+            pointerType: "mouse",
+            isPrimary: true,
+          }));
+        }
+
+        target.dispatchEvent(new MouseEvent(mouseType, baseEvent));
+      };
+
+      const swingAtPoint = (point) => {
+        dispatchSyntheticInput("move", point);
+        dispatchSyntheticInput("down", point);
+        dispatchSyntheticInput("up", point);
+        player.dispatchEvent(new MouseEvent("click", {
           bubbles: true,
           cancelable: true,
           composed: true,
@@ -627,16 +653,8 @@
           screenX: point.screenX,
           screenY: point.screenY,
           button: 0,
-          buttons: type === "mouseup" ? 0 : 1,
-        });
-
-        target.dispatchEvent(event);
-      };
-
-      const swingAtPoint = (point) => {
-        dispatchPointerAsMouse("mousemove", point);
-        dispatchPointerAsMouse("mousedown", point);
-        dispatchPointerAsMouse("mouseup", point);
+          buttons: 0,
+        }));
       };
 
       const findTrackedTouch = (touchList) => {
@@ -754,7 +772,7 @@
 
         activeTouchId = touch.identifier;
         lastTouchPoint = touch;
-        dispatchPointerAsMouse("mousemove", touch);
+        dispatchSyntheticInput("move", touch);
         event.preventDefault();
       }, { passive: false });
 
@@ -769,7 +787,7 @@
         }
 
         lastTouchPoint = touch;
-        dispatchPointerAsMouse("mousemove", touch);
+        dispatchSyntheticInput("move", touch);
         event.preventDefault();
       }, { passive: false });
 
