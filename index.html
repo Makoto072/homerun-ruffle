@@ -252,6 +252,23 @@
       line-height: 1.4;
     }
 
+    .danger-button {
+      width: 100%;
+      min-height: 46px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 107, 107, 0.42);
+      border-radius: 12px;
+      background: rgba(255, 107, 107, 0.12);
+      color: #ffd7d7;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .danger-button:hover {
+      background: rgba(255, 107, 107, 0.18);
+    }
+
     #game-shell {
       padding: 8px 24px 24px;
     }
@@ -320,7 +337,7 @@
     }
 
     body[data-device="mobile"] .settings-nav {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     body[data-device="mobile"] .volume-panel {
@@ -444,6 +461,17 @@
                 >
                   Graphic
                 </button>
+                <button
+                  id="tab-data"
+                  class="settings-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-data"
+                  data-settings-tab="data"
+                >
+                  Data
+                </button>
               </div>
               <div class="settings-content">
                 <section id="panel-sound" class="settings-section" role="tabpanel" aria-labelledby="tab-sound">
@@ -483,6 +511,16 @@
                     </div>
                   </div>
                 </section>
+                <section id="panel-data" class="settings-section" role="tabpanel" aria-labelledby="tab-data" hidden>
+                  <h2 class="settings-heading">Data</h2>
+                  <p class="settings-copy">ゲームの進行データを削除して初期状態に戻します。削除すると元に戻せません。</p>
+                  <div class="settings-card settings-grid">
+                    <div>
+                      <button id="reset-save-button" class="danger-button" type="button">セーブデータを削除して初期化</button>
+                      <p class="setting-note">削除前に確認メッセージを表示します。音量や画質の設定は残します。</p>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </div>
@@ -498,6 +536,7 @@
     const VOLUME_KEY = "homerun-volume";
     const QUALITY_KEY = "homerun-quality";
     const MOVIE_URL = "homerun.swf";
+    const SAVE_DATA_KEY = "localhost/homerun.swf/saveData";
 
     window.RufflePlayer = window.RufflePlayer || {};
     window.addEventListener("DOMContentLoaded", () => {
@@ -509,9 +548,11 @@
       const settingsTabs = Array.from(document.querySelectorAll("[data-settings-tab]"));
       const settingsSections = {
         sound: document.getElementById("panel-sound"),
-        graphic: document.getElementById("panel-graphic")
+        graphic: document.getElementById("panel-graphic"),
+        data: document.getElementById("panel-data")
       };
       const qualitySelect = document.getElementById("quality-select");
+      const resetSaveButton = document.getElementById("reset-save-button");
       const slider = document.getElementById("volume-slider");
       const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
@@ -607,6 +648,20 @@
         tab.addEventListener("click", () => {
           setActiveSettingsTab(tab.dataset.settingsTab);
         });
+      });
+
+      resetSaveButton.addEventListener("click", () => {
+        const shouldReset = window.confirm(
+          "セーブデータを削除して初期化します。\nこの操作は元に戻せません。"
+        );
+
+        if (!shouldReset) {
+          return;
+        }
+
+        localStorage.removeItem(SAVE_DATA_KEY);
+        loadMovie();
+        setSettingsOpen(false);
       });
 
       settingsButton.addEventListener("click", () => {
