@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホームランダービー</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg-a: #0b1020;
+      --bg-b: #1f6f8b;
+      --panel: rgba(255, 255, 255, 0.14);
+      --border: rgba(255, 255, 255, 0.22);
+      --text: #f6f7fb;
+      --muted: rgba(246, 247, 251, 0.72);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 32%),
+        linear-gradient(135deg, var(--bg-a), var(--bg-b));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(100%, 1080px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 20px 24px 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1;
+      letter-spacing: 0.04em;
+    }
+
+    p {
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    #game-shell {
+      padding: 8px 24px 24px;
+    }
+
+    #game-frame {
+      width: 100%;
+      aspect-ratio: 800 / 600;
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(7, 11, 24, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    ruffle-player,
+    #game-frame > div {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 12px;
+      }
+
+      header,
+      #game-shell {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>ホームランダービー</h1>
+      <p>Ruffle で `homerun.swf` をローカル再生しています。</p>
+    </header>
+    <section id="game-shell">
+      <div id="game-frame"></div>
+    </section>
+  </main>
+
+  <script>
+    window.RufflePlayer = window.RufflePlayer || {};
+    window.addEventListener("DOMContentLoaded", () => {
+      const ruffle = window.RufflePlayer.newest();
+      const player = ruffle.createPlayer();
+      const frame = document.getElementById("game-frame");
+      frame.appendChild(player);
+      player.ruffle().load("homerun.swf");
+    });
+  </script>
+  <script src="./ruffle/ruffle.js"></script>
+</body>
+</html>
