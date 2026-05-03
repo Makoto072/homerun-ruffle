@@ -293,8 +293,9 @@
     .mobile-input-layer {
       position: absolute;
       inset: 0;
-      display: none;
+      display: none !important;
       background: transparent;
+      pointer-events: none;
       touch-action: none;
       z-index: 5;
     }
@@ -342,12 +343,8 @@
       right: 0;
     }
 
-    body[data-device="mobile"] .mobile-input-layer {
-      display: block;
-    }
-
     body[data-device="mobile"] ruffle-player {
-      pointer-events: none;
+      pointer-events: auto;
     }
 
     body[data-device="mobile"] .settings-layout {
@@ -577,13 +574,54 @@
       const slider = document.getElementById("volume-slider");
       const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
-      const player = ruffle.createPlayer();
       const frame = document.getElementById("game-frame");
-      const mobileInputLayer = document.getElementById("mobile-input-layer");
       const userAgent = navigator.userAgent || "";
+      const trackedRuffleTypes = new Set(["click", "pointerdown", "pointermove", "pointerup"]);
+      const ignoredListeners = new WeakSet();
+      const storedRuffleListeners = new WeakMap();
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
       let currentQuality = "high";
       let activeTouchId = null;
       let lastTouchPoint = null;
+
+      const isRuffleInputTarget = (target) => target instanceof HTMLElement && (
+        target.id === "container" ||
+        target.tagName === "CANVAS" ||
+        target.tagName === "RUFFLE-PLAYER"
+      );
+
+      const rememberRuffleListener = (target, type, listener) => {
+        let targetListeners = storedRuffleListeners.get(target);
+        if (!targetListeners) {
+          targetListeners = new Map();
+          storedRuffleListeners.set(target, targetListeners);
+        }
+
+        let listeners = targetListeners.get(type);
+        if (!listeners) {
+          listeners = [];
+          targetListeners.set(type, listeners);
+        }
+
+        if (!listeners.includes(listener)) {
+          listeners.push(listener);
+        }
+      };
+
+      EventTarget.prototype.addEventListener = function(type, listener, options) {
+        if (
+          listener &&
+          !ignoredListeners.has(listener) &&
+          trackedRuffleTypes.has(type) &&
+          isRuffleInputTarget(this)
+        ) {
+          rememberRuffleListener(this, type, listener);
+        }
+
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+
+      const player = ruffle.createPlayer();
 
       const syncDeviceMode = () => {
         const uaMobile =
@@ -605,70 +643,185 @@
         settingsPanel.hidden = !isOpen;
       };
 
-      const dispatchSyntheticInput = (type, point) => {
-        if (!point) {
+      const getCanvasTarget = () => {
+        const shadowRoot = player.shadowRoot;
+        return shadowRoot?.querySelector("#container canvas") || null;
+      };
+
+      const getContainerTarget = () => {
+        const shadowRoot = player.shadowRoot;
+        return shadowRoot?.querySelector("#container") || null;
+      };
+
+      const getPointerPath = () => {
+        const canvas = getCanvasTarget();
+        const container = getContainerTarget();
+        return [canvas, container, player].filter((target, index, list) =>
+          target && list.indexOf(target) === index
+        );
+      };
+
+      const getPointTarget = (point) => {
+        const shadowRoot = player.shadowRoot;
+        return shadowRoot?.elementFromPoint(point.clientX, point.clientY)
+          || getCanvasTarget()
+          || getContainerTarget()
+          || player;
+      };
+
+      const getBlockingOverlay = () => {
+        const shadowRoot = player.shadowRoot;
+        const selectors = ["#play-button", "#unmute-overlay", "#message-overlay"];
+        const visibleSelector = selectors.find((selector) => {
+          const element = shadowRoot?.querySelector(selector);
+          return element && getComputedStyle(element).display !== "none";
+        });
+
+        return visibleSelector ? shadowRoot?.querySelector(visibleSelector) || null : null;
+      };
+
+      const createPointerProxy = (sourceEvent, overrides) => new Proxy(sourceEvent, {
+        get(target, property, receiver) {
+          if (property in overrides) {
+            return overrides[property];
+          }
+
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+      });
+
+      const callStoredRuffleListeners = (currentTarget, type, proxyEvent) => {
+        const listeners = storedRuffleListeners.get(currentTarget)?.get(type) || [];
+
+        for (const listener of listeners) {
+          if (typeof listener === "function") {
+            listener.call(currentTarget, proxyEvent);
+            continue;
+          }
+
+          if (typeof listener.handleEvent === "function") {
+            listener.handleEvent(proxyEvent);
+          }
+        }
+      };
+
+      const relayMobilePointer = (type, sourceEvent, buttons) => {
+        const eventTarget = getPointTarget(sourceEvent);
+        if (!eventTarget || !sourceEvent) {
           return;
         }
 
-        const target = player;
-        const isMove = type === "move";
-        const pointerType = `pointer${type}`;
-        const mouseType = `mouse${type}`;
-        const buttons = isMove ? (activeTouchId === null ? 0 : 1) : (type === "up" ? 0 : 1);
-        const button = type === "up" ? 0 : 0;
-        const baseEvent = {
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          clientX: point.clientX,
-          clientY: point.clientY,
-          screenX: point.screenX,
-          screenY: point.screenY,
-          button,
-          buttons,
-        };
-
-        if (window.PointerEvent) {
-          target.dispatchEvent(new PointerEvent(pointerType, {
-            ...baseEvent,
+        for (const currentTarget of getPointerPath()) {
+          const proxyEvent = createPointerProxy(sourceEvent, {
+            type,
+            button: type === "pointermove" ? -1 : 0,
+            buttons,
+            currentTarget,
+            isPrimary: true,
             pointerId: 1,
             pointerType: "mouse",
-            isPrimary: true,
-          }));
-        }
+            pressure: buttons === 0 ? 0 : 0.5,
+            target: eventTarget,
+          });
 
-        target.dispatchEvent(new MouseEvent(mouseType, baseEvent));
+          callStoredRuffleListeners(currentTarget, type, proxyEvent);
+        }
       };
 
-      const swingAtPoint = (point) => {
-        dispatchSyntheticInput("move", point);
-        dispatchSyntheticInput("down", point);
-        dispatchSyntheticInput("up", point);
-        player.dispatchEvent(new MouseEvent("click", {
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          clientX: point.clientX,
-          clientY: point.clientY,
-          screenX: point.screenX,
-          screenY: point.screenY,
-          button: 0,
-          buttons: 0,
-        }));
-      };
-
-      const findTrackedTouch = (touchList) => {
-        if (activeTouchId === null) {
-          return null;
+      const setupMobilePointerInterception = () => {
+        const targets = getPointerPath().filter((target) => target instanceof HTMLElement);
+        if (targets.length === 0) {
+          return;
         }
 
-        for (const touch of touchList) {
-          if (touch.identifier === activeTouchId) {
-            return touch;
+        const handleMobilePointerDown = (event) => {
+          const blockingOverlay = getBlockingOverlay();
+          if (
+            document.body.dataset.device !== "mobile" ||
+            event.pointerType !== "touch"
+          ) {
+            return;
           }
-        }
 
-        return null;
+          if (blockingOverlay) {
+            blockingOverlay.click();
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          activeTouchId = event.pointerId;
+          lastTouchPoint = event;
+          relayMobilePointer("pointermove", event, 0);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        };
+
+        const handleMobilePointerMove = (event) => {
+          if (
+            document.body.dataset.device !== "mobile" ||
+            event.pointerType !== "touch" ||
+            getBlockingOverlay() ||
+            activeTouchId !== event.pointerId
+          ) {
+            return;
+          }
+
+          lastTouchPoint = event;
+          relayMobilePointer("pointermove", event, 0);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        };
+
+        const handleMobilePointerUp = (event) => {
+          if (
+            document.body.dataset.device !== "mobile" ||
+            event.pointerType !== "touch" ||
+            getBlockingOverlay() ||
+            activeTouchId !== event.pointerId
+          ) {
+            return;
+          }
+
+          const finalPoint = lastTouchPoint || event;
+          relayMobilePointer("pointermove", finalPoint, 0);
+          relayMobilePointer("pointerdown", finalPoint, 1);
+          relayMobilePointer("pointerup", finalPoint, 0);
+          relayMobilePointer("click", finalPoint, 0);
+          activeTouchId = null;
+          lastTouchPoint = null;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        };
+
+        const handleMobilePointerCancel = (event) => {
+          if (activeTouchId !== event.pointerId) {
+            return;
+          }
+
+          activeTouchId = null;
+          lastTouchPoint = null;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        };
+
+        ignoredListeners.add(handleMobilePointerDown);
+        ignoredListeners.add(handleMobilePointerMove);
+        ignoredListeners.add(handleMobilePointerUp);
+        ignoredListeners.add(handleMobilePointerCancel);
+
+        for (const target of targets) {
+          if (target.dataset.mobileInterceptReady === "true") {
+            continue;
+          }
+
+          target.addEventListener("pointerdown", handleMobilePointerDown, { capture: true });
+          target.addEventListener("pointermove", handleMobilePointerMove, { capture: true });
+          target.addEventListener("pointerup", handleMobilePointerUp, { capture: true });
+          target.addEventListener("pointercancel", handleMobilePointerCancel, { capture: true });
+          target.dataset.mobileInterceptReady = "true";
+        }
       };
 
       const setActiveSettingsTab = (tabName) => {
@@ -716,11 +869,13 @@
       const initialQuality = savedQuality || "high";
 
       player.addEventListener("loadedmetadata", () => {
+        setupMobilePointerInterception();
         setPlayerVolume(Number(slider.value));
       });
 
       syncDeviceMode();
       frame.appendChild(player);
+      setupMobilePointerInterception();
       setActiveSettingsTab("sound");
       qualitySelect.value = initialQuality;
       currentQuality = initialQuality;
@@ -755,60 +910,6 @@
         localStorage.removeItem(QUALITY_KEY);
         window.location.reload();
       });
-
-      mobileInputLayer.addEventListener("touchstart", (event) => {
-        if (document.body.dataset.device !== "mobile") {
-          return;
-        }
-
-        if (activeTouchId !== null) {
-          return;
-        }
-
-        const touch = event.changedTouches[0];
-        if (!touch) {
-          return;
-        }
-
-        activeTouchId = touch.identifier;
-        lastTouchPoint = touch;
-        dispatchSyntheticInput("move", touch);
-        event.preventDefault();
-      }, { passive: false });
-
-      mobileInputLayer.addEventListener("touchmove", (event) => {
-        if (document.body.dataset.device !== "mobile") {
-          return;
-        }
-
-        const touch = findTrackedTouch(event.changedTouches) || findTrackedTouch(event.touches);
-        if (!touch) {
-          return;
-        }
-
-        lastTouchPoint = touch;
-        dispatchSyntheticInput("move", touch);
-        event.preventDefault();
-      }, { passive: false });
-
-      const endTouchTracking = (event) => {
-        if (document.body.dataset.device !== "mobile") {
-          return;
-        }
-
-        const touch = findTrackedTouch(event.changedTouches) || lastTouchPoint;
-        if (!touch) {
-          return;
-        }
-
-        swingAtPoint(touch);
-        activeTouchId = null;
-        lastTouchPoint = null;
-        event.preventDefault();
-      };
-
-      mobileInputLayer.addEventListener("touchend", endTouchTracking, { passive: false });
-      mobileInputLayer.addEventListener("touchcancel", endTouchTracking, { passive: false });
 
       settingsButton.addEventListener("click", () => {
         const isOpen = settingsButton.getAttribute("aria-expanded") === "true";
