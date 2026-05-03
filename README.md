@@ -12,7 +12,7 @@
 
 GitHub Pages を有効化すると、以下の URL で遊べます。
 
-- `https://javaneko18.github.io/homerun-ruffle/`
+- `https://makoto072.github.io/homerun-ruffle/`
 
 ## メモ
 
