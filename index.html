@@ -57,8 +57,77 @@
       flex-wrap: wrap;
     }
 
+    .settings-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .settings-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 52px;
+      min-height: 52px;
+      padding: 0 16px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(7, 11, 24, 0.34);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+      transition: background-color 160ms ease, transform 160ms ease;
+    }
+
+    .settings-button:hover,
+    .settings-button[aria-expanded="true"] {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .settings-button:active {
+      transform: translateY(1px);
+    }
+
+    .settings-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .settings-text {
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .settings-panel {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      z-index: 20;
+      width: min(320px, calc(100vw - 48px));
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(11, 16, 32, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    .settings-panel[hidden] {
+      display: none;
+    }
+
+    .settings-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .volume-panel {
-      min-width: 220px;
+      min-width: 0;
       padding: 12px 14px;
       border-radius: 16px;
       background: rgba(7, 11, 24, 0.28);
@@ -143,6 +212,20 @@
       justify-content: flex-end;
     }
 
+    body[data-device="mobile"] .settings-wrap {
+      width: 100%;
+    }
+
+    body[data-device="mobile"] .settings-button {
+      width: 100%;
+    }
+
+    body[data-device="mobile"] .settings-panel {
+      width: 100%;
+      max-width: none;
+      right: 0;
+    }
+
     body[data-device="mobile"] .volume-panel {
       width: 100%;
       min-width: 0;
@@ -207,9 +290,17 @@
         align-items: stretch;
       }
 
-      body[data-device="desktop"] .volume-panel {
+      body[data-device="desktop"] .settings-wrap {
         width: 100%;
-        min-width: 0;
+      }
+
+      body[data-device="desktop"] .settings-button {
+        width: 100%;
+      }
+
+      body[data-device="desktop"] .settings-panel {
+        width: 100%;
+        max-width: none;
       }
     }
   </style>
@@ -218,19 +309,35 @@
   <main>
     <header>
       <div class="topbar">
-        <div class="volume-panel">
-          <label class="volume-label" for="volume-slider">Volume</label>
-          <div class="volume-row">
-            <input
-              id="volume-slider"
-              class="volume-slider"
-              type="range"
-              min="0"
-              max="100"
-              value="50"
-              aria-label="音量"
-            >
-            <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+        <div class="settings-wrap">
+          <button
+            id="settings-button"
+            class="settings-button"
+            type="button"
+            aria-expanded="false"
+            aria-controls="settings-panel"
+            aria-label="設定を開く"
+          >
+            <span class="settings-icon" aria-hidden="true">⚙</span>
+            <span class="settings-text">Settings</span>
+          </button>
+          <div id="settings-panel" class="settings-panel" hidden>
+            <p class="settings-title">Settings</p>
+            <div class="volume-panel">
+              <label class="volume-label" for="volume-slider">Volume</label>
+              <div class="volume-row">
+                <input
+                  id="volume-slider"
+                  class="volume-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="50"
+                  aria-label="音量"
+                >
+                <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -247,6 +354,9 @@
     window.addEventListener("DOMContentLoaded", () => {
       const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
       const hoverQuery = window.matchMedia("(hover: none)");
+      const settingsWrap = document.querySelector(".settings-wrap");
+      const settingsButton = document.getElementById("settings-button");
+      const settingsPanel = document.getElementById("settings-panel");
       const slider = document.getElementById("volume-slider");
       const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
@@ -267,6 +377,11 @@
         document.body.dataset.device = deviceMode;
         document.body.dataset.orientation =
           window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+      };
+
+      const setSettingsOpen = (isOpen) => {
+        settingsButton.setAttribute("aria-expanded", String(isOpen));
+        settingsPanel.hidden = !isOpen;
       };
 
       const updateVolumeLabel = (amount) => {
@@ -292,6 +407,23 @@
 
       slider.addEventListener("input", (event) => {
         setPlayerVolume(Number(event.target.value));
+      });
+
+      settingsButton.addEventListener("click", () => {
+        const isOpen = settingsButton.getAttribute("aria-expanded") === "true";
+        setSettingsOpen(!isOpen);
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!settingsWrap.contains(event.target)) {
+          setSettingsOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setSettingsOpen(false);
+        }
       });
 
       window.addEventListener("resize", syncDeviceMode);
