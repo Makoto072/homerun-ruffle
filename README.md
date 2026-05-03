@@ -1,6 +1,6 @@
 # ホームランダービー移植版
 
-`homerun.swf` を [Ruffle](https://ruffle.rs/) でブラウザ再生できるようにした GitHub Pages 向け移植版です。
+`homerun.swf` を [Ruffle](https://ruffle.rs/) でブラウザ再生できるようにした移植版です。
 
 ## 構成
 
