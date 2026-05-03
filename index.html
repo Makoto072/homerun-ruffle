@@ -57,18 +57,6 @@
       flex-wrap: wrap;
     }
 
-    h1 {
-      margin: 0;
-      font-size: clamp(28px, 4vw, 44px);
-      line-height: 1;
-      letter-spacing: 0.04em;
-    }
-
-    p {
-      margin: 10px 0 0;
-      color: var(--muted);
-    }
-
     .volume-panel {
       min-width: 220px;
       padding: 12px 14px;
@@ -151,17 +139,8 @@
       align-items: stretch;
     }
 
-    body[data-device="mobile"] .topbar > div:first-child {
-      width: 100%;
-    }
-
-    body[data-device="mobile"] h1 {
-      font-size: clamp(24px, 8vw, 34px);
-    }
-
-    body[data-device="mobile"] p {
-      font-size: 14px;
-      line-height: 1.4;
+    body[data-device="mobile"] .topbar {
+      justify-content: flex-end;
     }
 
     body[data-device="mobile"] .volume-panel {
@@ -239,10 +218,6 @@
   <main>
     <header>
       <div class="topbar">
-        <div>
-          <h1>ホームランダービー</h1>
-          <p>Ruffle で `homerun.swf` をブラウザ再生しています。</p>
-        </div>
         <div class="volume-panel">
           <label class="volume-label" for="volume-slider">Volume</label>
           <div class="volume-row">
