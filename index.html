@@ -517,7 +517,7 @@
                   <div class="settings-card settings-grid">
                     <div>
                       <button id="reset-save-button" class="danger-button" type="button">セーブデータを削除して初期化</button>
-                      <p class="setting-note">削除前に確認メッセージを表示します。音量や画質の設定は残します。</p>
+                      <p class="setting-note">削除前に確認メッセージを表示します。ゲームデータと設定項目をまとめて初期化します。</p>
                     </div>
                   </div>
                 </section>
@@ -660,8 +660,9 @@
         }
 
         localStorage.removeItem(SAVE_DATA_KEY);
-        loadMovie();
-        setSettingsOpen(false);
+        localStorage.removeItem(VOLUME_KEY);
+        localStorage.removeItem(QUALITY_KEY);
+        window.location.reload();
       });
 
       settingsButton.addEventListener("click", () => {
