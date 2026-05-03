@@ -583,6 +583,10 @@
       const savedQuality = localStorage.getItem(QUALITY_KEY);
       const initialQuality = savedQuality || "high";
 
+      player.addEventListener("loadedmetadata", () => {
+        setPlayerVolume(Number(slider.value));
+      });
+
       syncDeviceMode();
       frame.appendChild(player);
       setActiveSettingsTab("sound");
