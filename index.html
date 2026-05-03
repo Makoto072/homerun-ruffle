@@ -487,10 +487,10 @@
                           type="range"
                           min="0"
                           max="100"
-                          value="50"
+                          value="25"
                           aria-label="音量"
                         >
-                        <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+                        <output id="volume-value" class="volume-value" for="volume-slider">25%</output>
                       </div>
                     </div>
                   </div>
@@ -620,7 +620,7 @@
       };
 
       const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
-      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 50;
+      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 25;
       const savedQuality = localStorage.getItem(QUALITY_KEY);
       const initialQuality = savedQuality || "high";
 
