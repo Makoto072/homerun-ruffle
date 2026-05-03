@@ -252,10 +252,10 @@
               type="range"
               min="0"
               max="100"
-              value="100"
+              value="50"
               aria-label="音量"
             >
-            <output id="volume-value" class="volume-value" for="volume-slider">100%</output>
+            <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
           </div>
         </div>
       </div>
@@ -308,7 +308,7 @@
       };
 
       const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
-      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 100;
+      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 50;
 
       syncDeviceMode();
       frame.appendChild(player);
