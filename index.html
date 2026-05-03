@@ -105,7 +105,7 @@
       top: calc(100% + 12px);
       right: 0;
       z-index: 20;
-      width: min(320px, calc(100vw - 48px));
+      width: min(420px, calc(100vw - 48px));
       padding: 14px;
       border-radius: 18px;
       background: rgba(11, 16, 32, 0.94);
@@ -126,12 +126,74 @@
       text-transform: uppercase;
     }
 
-    .volume-panel {
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 124px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .settings-nav {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .settings-tab {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .settings-tab[aria-selected="true"] {
+      background: rgba(255, 209, 102, 0.16);
+      border-color: rgba(255, 209, 102, 0.4);
+    }
+
+    .settings-content {
       min-width: 0;
+    }
+
+    .settings-section[hidden] {
+      display: none;
+    }
+
+    .settings-heading {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .settings-copy {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .settings-card {
       padding: 12px 14px;
       border-radius: 16px;
-      background: rgba(7, 11, 24, 0.28);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .volume-panel {
+      min-width: 0;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      border: 0;
     }
 
     .volume-row {
@@ -161,6 +223,33 @@
       cursor: pointer;
       min-height: 36px;
       touch-action: manipulation;
+    }
+
+    .field-label {
+      display: block;
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .select-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      background: rgba(7, 11, 24, 0.48);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .setting-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
     }
 
     #game-shell {
@@ -224,6 +313,14 @@
       width: 100%;
       max-width: none;
       right: 0;
+    }
+
+    body[data-device="mobile"] .settings-layout {
+      grid-template-columns: 1fr;
+    }
+
+    body[data-device="mobile"] .settings-nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     body[data-device="mobile"] .volume-panel {
@@ -323,19 +420,69 @@
           </button>
           <div id="settings-panel" class="settings-panel" hidden>
             <p class="settings-title">Settings</p>
-            <div class="volume-panel">
-              <label class="volume-label" for="volume-slider">Volume</label>
-              <div class="volume-row">
-                <input
-                  id="volume-slider"
-                  class="volume-slider"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value="50"
-                  aria-label="音量"
+            <div class="settings-layout">
+              <div class="settings-nav" role="tablist" aria-label="設定カテゴリ">
+                <button
+                  id="tab-sound"
+                  class="settings-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-sound"
+                  data-settings-tab="sound"
                 >
-                <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+                  Sound
+                </button>
+                <button
+                  id="tab-graphic"
+                  class="settings-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-graphic"
+                  data-settings-tab="graphic"
+                >
+                  Graphic
+                </button>
+              </div>
+              <div class="settings-content">
+                <section id="panel-sound" class="settings-section" role="tabpanel" aria-labelledby="tab-sound">
+                  <h2 class="settings-heading">Sound</h2>
+                  <p class="settings-copy">音量を調整します。変更はこのブラウザに保存されます。</p>
+                  <div class="settings-card settings-grid">
+                    <div class="volume-panel">
+                      <label class="volume-label" for="volume-slider">Volume</label>
+                      <div class="volume-row">
+                        <input
+                          id="volume-slider"
+                          class="volume-slider"
+                          type="range"
+                          min="0"
+                          max="100"
+                          value="50"
+                          aria-label="音量"
+                        >
+                        <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="panel-graphic" class="settings-section" role="tabpanel" aria-labelledby="tab-graphic" hidden>
+                  <h2 class="settings-heading">Graphic</h2>
+                  <p class="settings-copy">描画品質を切り替えます。変更後はゲームを再読み込みして反映します。</p>
+                  <div class="settings-card settings-grid">
+                    <div>
+                      <label class="field-label" for="quality-select">Quality</label>
+                      <select id="quality-select" class="select-input" aria-label="描画品質">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high" selected>High</option>
+                        <option value="best">Best</option>
+                      </select>
+                      <p class="setting-note">重い場合は `Low` や `Medium`、線の滑らかさを優先するなら `High` か `Best` を使います。</p>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </div>
@@ -349,6 +496,8 @@
 
   <script>
     const VOLUME_KEY = "homerun-volume";
+    const QUALITY_KEY = "homerun-quality";
+    const MOVIE_URL = "homerun.swf";
 
     window.RufflePlayer = window.RufflePlayer || {};
     window.addEventListener("DOMContentLoaded", () => {
@@ -357,12 +506,19 @@
       const settingsWrap = document.querySelector(".settings-wrap");
       const settingsButton = document.getElementById("settings-button");
       const settingsPanel = document.getElementById("settings-panel");
+      const settingsTabs = Array.from(document.querySelectorAll("[data-settings-tab]"));
+      const settingsSections = {
+        sound: document.getElementById("panel-sound"),
+        graphic: document.getElementById("panel-graphic")
+      };
+      const qualitySelect = document.getElementById("quality-select");
       const slider = document.getElementById("volume-slider");
       const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
       const player = ruffle.createPlayer();
       const frame = document.getElementById("game-frame");
       const userAgent = navigator.userAgent || "";
+      let currentQuality = "high";
 
       const syncDeviceMode = () => {
         const uaMobile =
@@ -384,6 +540,17 @@
         settingsPanel.hidden = !isOpen;
       };
 
+      const setActiveSettingsTab = (tabName) => {
+        settingsTabs.forEach((tab) => {
+          const isActive = tab.dataset.settingsTab === tabName;
+          tab.setAttribute("aria-selected", String(isActive));
+        });
+
+        Object.entries(settingsSections).forEach(([name, section]) => {
+          section.hidden = name !== tabName;
+        });
+      };
+
       const updateVolumeLabel = (amount) => {
         value.value = amount + "%";
         value.textContent = amount + "%";
@@ -397,16 +564,45 @@
         localStorage.setItem(VOLUME_KEY, String(clamped));
       };
 
+      const loadMovie = () => {
+        player.ruffle().load({
+          url: MOVIE_URL,
+          quality: currentQuality
+        });
+      };
+
+      const setQuality = (quality) => {
+        currentQuality = quality;
+        qualitySelect.value = quality;
+        localStorage.setItem(QUALITY_KEY, quality);
+        loadMovie();
+      };
+
       const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
       const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 50;
+      const savedQuality = localStorage.getItem(QUALITY_KEY);
+      const initialQuality = savedQuality || "high";
 
       syncDeviceMode();
       frame.appendChild(player);
+      setActiveSettingsTab("sound");
+      qualitySelect.value = initialQuality;
+      currentQuality = initialQuality;
       setPlayerVolume(initialVolume);
-      player.ruffle().load("homerun.swf");
+      loadMovie();
 
       slider.addEventListener("input", (event) => {
         setPlayerVolume(Number(event.target.value));
+      });
+
+      qualitySelect.addEventListener("change", (event) => {
+        setQuality(event.target.value);
+      });
+
+      settingsTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          setActiveSettingsTab(tab.dataset.settingsTab);
+        });
       });
 
       settingsButton.addEventListener("click", () => {
