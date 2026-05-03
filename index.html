@@ -23,6 +23,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100dvh;
       font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
       color: var(--text);
       background:
@@ -31,6 +32,7 @@
       display: grid;
       place-items: center;
       padding: 24px;
+      overscroll-behavior: none;
     }
 
     main {
@@ -47,16 +49,207 @@
       padding: 20px 24px 12px;
     }
 
-    h1 {
-      margin: 0;
-      font-size: clamp(28px, 4vw, 44px);
-      line-height: 1;
-      letter-spacing: 0.04em;
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
-    p {
-      margin: 10px 0 0;
+    .settings-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .settings-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 52px;
+      min-height: 52px;
+      padding: 0 16px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(7, 11, 24, 0.34);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+      transition: background-color 160ms ease, transform 160ms ease;
+    }
+
+    .settings-button:hover,
+    .settings-button[aria-expanded="true"] {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .settings-button:active {
+      transform: translateY(1px);
+    }
+
+    .settings-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .settings-text {
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .settings-panel {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      z-index: 20;
+      width: min(420px, calc(100vw - 48px));
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(11, 16, 32, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    .settings-panel[hidden] {
+      display: none;
+    }
+
+    .settings-title {
+      margin: 0 0 12px;
       color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 124px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .settings-nav {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .settings-tab {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .settings-tab[aria-selected="true"] {
+      background: rgba(255, 209, 102, 0.16);
+      border-color: rgba(255, 209, 102, 0.4);
+    }
+
+    .settings-content {
+      min-width: 0;
+    }
+
+    .settings-section[hidden] {
+      display: none;
+    }
+
+    .settings-heading {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .settings-copy {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .settings-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .volume-panel {
+      min-width: 0;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      border: 0;
+    }
+
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .volume-label {
+      display: block;
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .volume-value {
+      min-width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .volume-slider {
+      flex: 1;
+      accent-color: #ffd166;
+      cursor: pointer;
+      min-height: 36px;
+      touch-action: manipulation;
+    }
+
+    .field-label {
+      display: block;
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .select-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      background: rgba(7, 11, 24, 0.48);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .setting-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
     }
 
     #game-shell {
@@ -79,15 +272,132 @@
       display: block;
     }
 
+    body[data-device="mobile"] {
+      padding: 12px;
+      display: block;
+    }
+
+    body[data-device="mobile"] main {
+      min-height: calc(100dvh - 24px);
+      border-radius: 20px;
+    }
+
+    body[data-device="mobile"] header,
+    body[data-device="mobile"] #game-shell {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    body[data-device="mobile"] header {
+      padding-top: 16px;
+      padding-bottom: 8px;
+    }
+
+    body[data-device="mobile"] .topbar {
+      align-items: stretch;
+    }
+
+    body[data-device="mobile"] .topbar {
+      justify-content: flex-end;
+    }
+
+    body[data-device="mobile"] .settings-wrap {
+      width: 100%;
+    }
+
+    body[data-device="mobile"] .settings-button {
+      width: 100%;
+    }
+
+    body[data-device="mobile"] .settings-panel {
+      width: 100%;
+      max-width: none;
+      right: 0;
+    }
+
+    body[data-device="mobile"] .settings-layout {
+      grid-template-columns: 1fr;
+    }
+
+    body[data-device="mobile"] .settings-nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body[data-device="mobile"] .volume-panel {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px 12px;
+    }
+
+    body[data-device="mobile"] .volume-label {
+      font-size: 12px;
+    }
+
+    body[data-device="mobile"] .volume-value {
+      min-width: 48px;
+      font-size: 15px;
+    }
+
+    body[data-device="mobile"] #game-shell {
+      padding-top: 6px;
+      padding-bottom: 14px;
+    }
+
+    body[data-device="mobile"] #game-frame {
+      height: min(68dvh, calc(100dvh - 190px));
+      min-height: 320px;
+      aspect-ratio: auto;
+      border-radius: 16px;
+    }
+
+    body[data-device="mobile"][data-orientation="landscape"] #game-frame {
+      height: min(56dvh, calc(100dvh - 146px));
+      min-height: 240px;
+    }
+
+    @media (max-width: 420px) {
+      body[data-device="mobile"] {
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(8px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(8px, env(safe-area-inset-left));
+      }
+
+      body[data-device="mobile"] main {
+        min-height: calc(100dvh - 16px);
+      }
+
+      body[data-device="mobile"] #game-frame {
+        height: min(64dvh, calc(100dvh - 176px));
+        min-height: 280px;
+      }
+    }
+
     @media (max-width: 720px) {
+      body[data-device="desktop"] {
+        padding: 16px;
+      }
+
       body {
         padding: 12px;
       }
 
-      header,
-      #game-shell {
-        padding-left: 14px;
-        padding-right: 14px;
+      body[data-device="desktop"] .topbar {
+        align-items: stretch;
+      }
+
+      body[data-device="desktop"] .settings-wrap {
+        width: 100%;
+      }
+
+      body[data-device="desktop"] .settings-button {
+        width: 100%;
+      }
+
+      body[data-device="desktop"] .settings-panel {
+        width: 100%;
+        max-width: none;
       }
     }
   </style>
@@ -95,8 +405,89 @@
 <body>
   <main>
     <header>
-      <h1>ホームランダービー</h1>
-      <p>Ruffle で `homerun.swf` をローカル再生しています。</p>
+      <div class="topbar">
+        <div class="settings-wrap">
+          <button
+            id="settings-button"
+            class="settings-button"
+            type="button"
+            aria-expanded="false"
+            aria-controls="settings-panel"
+            aria-label="設定を開く"
+          >
+            <span class="settings-icon" aria-hidden="true">⚙</span>
+            <span class="settings-text">Settings</span>
+          </button>
+          <div id="settings-panel" class="settings-panel" hidden>
+            <p class="settings-title">Settings</p>
+            <div class="settings-layout">
+              <div class="settings-nav" role="tablist" aria-label="設定カテゴリ">
+                <button
+                  id="tab-sound"
+                  class="settings-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-sound"
+                  data-settings-tab="sound"
+                >
+                  Sound
+                </button>
+                <button
+                  id="tab-graphic"
+                  class="settings-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-graphic"
+                  data-settings-tab="graphic"
+                >
+                  Graphic
+                </button>
+              </div>
+              <div class="settings-content">
+                <section id="panel-sound" class="settings-section" role="tabpanel" aria-labelledby="tab-sound">
+                  <h2 class="settings-heading">Sound</h2>
+                  <p class="settings-copy">音量を調整します。変更はこのブラウザに保存されます。</p>
+                  <div class="settings-card settings-grid">
+                    <div class="volume-panel">
+                      <label class="volume-label" for="volume-slider">Volume</label>
+                      <div class="volume-row">
+                        <input
+                          id="volume-slider"
+                          class="volume-slider"
+                          type="range"
+                          min="0"
+                          max="100"
+                          value="50"
+                          aria-label="音量"
+                        >
+                        <output id="volume-value" class="volume-value" for="volume-slider">50%</output>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="panel-graphic" class="settings-section" role="tabpanel" aria-labelledby="tab-graphic" hidden>
+                  <h2 class="settings-heading">Graphic</h2>
+                  <p class="settings-copy">描画品質を切り替えます。変更後はゲームを再読み込みして反映します。</p>
+                  <div class="settings-card settings-grid">
+                    <div>
+                      <label class="field-label" for="quality-select">Quality</label>
+                      <select id="quality-select" class="select-input" aria-label="描画品質">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high" selected>High</option>
+                        <option value="best">Best</option>
+                      </select>
+                      <p class="setting-note">重い場合は `Low` や `Medium`、線の滑らかさを優先するなら `High` か `Best` を使います。</p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
     <section id="game-shell">
       <div id="game-frame"></div>
@@ -104,13 +495,140 @@
   </main>
 
   <script>
+    const VOLUME_KEY = "homerun-volume";
+    const QUALITY_KEY = "homerun-quality";
+    const MOVIE_URL = "homerun.swf";
+
     window.RufflePlayer = window.RufflePlayer || {};
     window.addEventListener("DOMContentLoaded", () => {
+      const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
+      const hoverQuery = window.matchMedia("(hover: none)");
+      const settingsWrap = document.querySelector(".settings-wrap");
+      const settingsButton = document.getElementById("settings-button");
+      const settingsPanel = document.getElementById("settings-panel");
+      const settingsTabs = Array.from(document.querySelectorAll("[data-settings-tab]"));
+      const settingsSections = {
+        sound: document.getElementById("panel-sound"),
+        graphic: document.getElementById("panel-graphic")
+      };
+      const qualitySelect = document.getElementById("quality-select");
+      const slider = document.getElementById("volume-slider");
+      const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
       const player = ruffle.createPlayer();
       const frame = document.getElementById("game-frame");
+      const userAgent = navigator.userAgent || "";
+      let currentQuality = "high";
+
+      const syncDeviceMode = () => {
+        const uaMobile =
+          navigator.userAgentData?.mobile === true ||
+          /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(userAgent);
+        const narrowViewport = window.innerWidth <= 860;
+        const touchHandheld = coarsePointerQuery.matches && hoverQuery.matches;
+        const deviceMode = uaMobile || (touchHandheld && narrowViewport)
+          ? "mobile"
+          : "desktop";
+
+        document.body.dataset.device = deviceMode;
+        document.body.dataset.orientation =
+          window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+      };
+
+      const setSettingsOpen = (isOpen) => {
+        settingsButton.setAttribute("aria-expanded", String(isOpen));
+        settingsPanel.hidden = !isOpen;
+      };
+
+      const setActiveSettingsTab = (tabName) => {
+        settingsTabs.forEach((tab) => {
+          const isActive = tab.dataset.settingsTab === tabName;
+          tab.setAttribute("aria-selected", String(isActive));
+        });
+
+        Object.entries(settingsSections).forEach(([name, section]) => {
+          section.hidden = name !== tabName;
+        });
+      };
+
+      const updateVolumeLabel = (amount) => {
+        value.value = amount + "%";
+        value.textContent = amount + "%";
+      };
+
+      const setPlayerVolume = (amount) => {
+        const clamped = Math.max(0, Math.min(100, amount));
+        player.volume = clamped / 100;
+        slider.value = String(clamped);
+        updateVolumeLabel(clamped);
+        localStorage.setItem(VOLUME_KEY, String(clamped));
+      };
+
+      const loadMovie = () => {
+        player.ruffle().load({
+          url: MOVIE_URL,
+          quality: currentQuality
+        });
+      };
+
+      const setQuality = (quality) => {
+        currentQuality = quality;
+        qualitySelect.value = quality;
+        localStorage.setItem(QUALITY_KEY, quality);
+        loadMovie();
+      };
+
+      const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
+      const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 50;
+      const savedQuality = localStorage.getItem(QUALITY_KEY);
+      const initialQuality = savedQuality || "high";
+
+      player.addEventListener("loadedmetadata", () => {
+        setPlayerVolume(Number(slider.value));
+      });
+
+      syncDeviceMode();
       frame.appendChild(player);
-      player.ruffle().load("homerun.swf");
+      setActiveSettingsTab("sound");
+      qualitySelect.value = initialQuality;
+      currentQuality = initialQuality;
+      setPlayerVolume(initialVolume);
+      loadMovie();
+
+      slider.addEventListener("input", (event) => {
+        setPlayerVolume(Number(event.target.value));
+      });
+
+      qualitySelect.addEventListener("change", (event) => {
+        setQuality(event.target.value);
+      });
+
+      settingsTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          setActiveSettingsTab(tab.dataset.settingsTab);
+        });
+      });
+
+      settingsButton.addEventListener("click", () => {
+        const isOpen = settingsButton.getAttribute("aria-expanded") === "true";
+        setSettingsOpen(!isOpen);
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!settingsWrap.contains(event.target)) {
+          setSettingsOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setSettingsOpen(false);
+        }
+      });
+
+      window.addEventListener("resize", syncDeviceMode);
+      coarsePointerQuery.addEventListener("change", syncDeviceMode);
+      hoverQuery.addEventListener("change", syncDeviceMode);
     });
   </script>
   <script src="./ruffle/ruffle.js"></script>
