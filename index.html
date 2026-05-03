@@ -126,75 +126,78 @@
       display: block;
     }
 
-    @media (max-width: 720px) {
-      body {
-        padding: 12px;
-        display: block;
-      }
+    body[data-device="mobile"] {
+      padding: 12px;
+      display: block;
+    }
 
-      main {
-        min-height: calc(100dvh - 24px);
-        border-radius: 20px;
-      }
+    body[data-device="mobile"] main {
+      min-height: calc(100dvh - 24px);
+      border-radius: 20px;
+    }
 
-      header,
-      #game-shell {
-        padding-left: 14px;
-        padding-right: 14px;
-      }
+    body[data-device="mobile"] header,
+    body[data-device="mobile"] #game-shell {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
 
-      header {
-        padding-top: 16px;
-        padding-bottom: 8px;
-      }
+    body[data-device="mobile"] header {
+      padding-top: 16px;
+      padding-bottom: 8px;
+    }
 
-      .topbar {
-        align-items: stretch;
-      }
+    body[data-device="mobile"] .topbar {
+      align-items: stretch;
+    }
 
-      .topbar > div:first-child {
-        width: 100%;
-      }
+    body[data-device="mobile"] .topbar > div:first-child {
+      width: 100%;
+    }
 
-      h1 {
-        font-size: clamp(24px, 8vw, 34px);
-      }
+    body[data-device="mobile"] h1 {
+      font-size: clamp(24px, 8vw, 34px);
+    }
 
-      p {
-        font-size: 14px;
-        line-height: 1.4;
-      }
+    body[data-device="mobile"] p {
+      font-size: 14px;
+      line-height: 1.4;
+    }
 
-      .volume-panel {
-        width: 100%;
-        min-width: 0;
-        padding: 10px 12px 12px;
-      }
+    body[data-device="mobile"] .volume-panel {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px 12px;
+    }
 
-      .volume-label {
-        font-size: 12px;
-      }
+    body[data-device="mobile"] .volume-label {
+      font-size: 12px;
+    }
 
-      .volume-value {
-        min-width: 48px;
-        font-size: 15px;
-      }
+    body[data-device="mobile"] .volume-value {
+      min-width: 48px;
+      font-size: 15px;
+    }
 
-      #game-shell {
-        padding-top: 6px;
-        padding-bottom: 14px;
-      }
+    body[data-device="mobile"] #game-shell {
+      padding-top: 6px;
+      padding-bottom: 14px;
+    }
 
-      #game-frame {
-        height: min(68dvh, calc(100dvh - 190px));
-        min-height: 320px;
-        aspect-ratio: auto;
-        border-radius: 16px;
-      }
+    body[data-device="mobile"] #game-frame {
+      height: min(68dvh, calc(100dvh - 190px));
+      min-height: 320px;
+      aspect-ratio: auto;
+      border-radius: 16px;
+    }
+
+    body[data-device="mobile"][data-orientation="landscape"] #game-frame {
+      height: min(56dvh, calc(100dvh - 146px));
+      min-height: 240px;
     }
 
     @media (max-width: 420px) {
-      body {
+      body[data-device="mobile"] {
         padding:
           max(8px, env(safe-area-inset-top))
           max(8px, env(safe-area-inset-right))
@@ -202,13 +205,32 @@
           max(8px, env(safe-area-inset-left));
       }
 
-      main {
+      body[data-device="mobile"] main {
         min-height: calc(100dvh - 16px);
       }
 
-      #game-frame {
+      body[data-device="mobile"] #game-frame {
         height: min(64dvh, calc(100dvh - 176px));
         min-height: 280px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body[data-device="desktop"] {
+        padding: 16px;
+      }
+
+      body {
+        padding: 12px;
+      }
+
+      body[data-device="desktop"] .topbar {
+        align-items: stretch;
+      }
+
+      body[data-device="desktop"] .volume-panel {
+        width: 100%;
+        min-width: 0;
       }
     }
   </style>
@@ -248,11 +270,29 @@
 
     window.RufflePlayer = window.RufflePlayer || {};
     window.addEventListener("DOMContentLoaded", () => {
+      const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
+      const hoverQuery = window.matchMedia("(hover: none)");
       const slider = document.getElementById("volume-slider");
       const value = document.getElementById("volume-value");
       const ruffle = window.RufflePlayer.newest();
       const player = ruffle.createPlayer();
       const frame = document.getElementById("game-frame");
+      const userAgent = navigator.userAgent || "";
+
+      const syncDeviceMode = () => {
+        const uaMobile =
+          navigator.userAgentData?.mobile === true ||
+          /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(userAgent);
+        const narrowViewport = window.innerWidth <= 860;
+        const touchHandheld = coarsePointerQuery.matches && hoverQuery.matches;
+        const deviceMode = uaMobile || (touchHandheld && narrowViewport)
+          ? "mobile"
+          : "desktop";
+
+        document.body.dataset.device = deviceMode;
+        document.body.dataset.orientation =
+          window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+      };
 
       const updateVolumeLabel = (amount) => {
         value.value = amount + "%";
@@ -270,6 +310,7 @@
       const savedVolume = Number(localStorage.getItem(VOLUME_KEY));
       const initialVolume = Number.isFinite(savedVolume) ? savedVolume : 100;
 
+      syncDeviceMode();
       frame.appendChild(player);
       setPlayerVolume(initialVolume);
       player.ruffle().load("homerun.swf");
@@ -277,6 +318,10 @@
       slider.addEventListener("input", (event) => {
         setPlayerVolume(Number(event.target.value));
       });
+
+      window.addEventListener("resize", syncDeviceMode);
+      coarsePointerQuery.addEventListener("change", syncDeviceMode);
+      hoverQuery.addEventListener("change", syncDeviceMode);
     });
   </script>
   <script src="./ruffle/ruffle.js"></script>
