@@ -280,6 +280,7 @@
       overflow: hidden;
       background: rgba(7, 11, 24, 0.86);
       border: 1px solid rgba(255, 255, 255, 0.12);
+      position: relative;
     }
 
     ruffle-player,
@@ -287,6 +288,30 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    .touch-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 34px;
+      height: 34px;
+      margin-left: -17px;
+      margin-top: -17px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 209, 102, 0.92);
+      background: rgba(255, 209, 102, 0.18);
+      box-shadow: 0 0 0 8px rgba(255, 209, 102, 0.08);
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 120ms ease, transform 120ms ease;
+      z-index: 5;
+    }
+
+    .touch-cursor.active {
+      opacity: 1;
+      transform: scale(1);
     }
 
     body[data-device="mobile"] {
@@ -365,6 +390,7 @@
       min-height: 320px;
       aspect-ratio: auto;
       border-radius: 16px;
+      touch-action: none;
     }
 
     body[data-device="mobile"][data-orientation="landscape"] #game-frame {
@@ -528,7 +554,9 @@
       </div>
     </header>
     <section id="game-shell">
-      <div id="game-frame"></div>
+      <div id="game-frame">
+        <div id="touch-cursor" class="touch-cursor" aria-hidden="true"></div>
+      </div>
     </section>
   </main>
 
@@ -558,8 +586,11 @@
       const ruffle = window.RufflePlayer.newest();
       const player = ruffle.createPlayer();
       const frame = document.getElementById("game-frame");
+      const touchCursor = document.getElementById("touch-cursor");
       const userAgent = navigator.userAgent || "";
       let currentQuality = "high";
+      let activeTouchId = null;
+      let lastTouchPoint = null;
 
       const syncDeviceMode = () => {
         const uaMobile =
@@ -579,6 +610,60 @@
       const setSettingsOpen = (isOpen) => {
         settingsButton.setAttribute("aria-expanded", String(isOpen));
         settingsPanel.hidden = !isOpen;
+      };
+
+      const getInteractionTarget = () => {
+        const shadowRoot = player.shadowRoot;
+        return shadowRoot?.querySelector("#container canvas")
+          || shadowRoot?.querySelector("#container")
+          || player;
+      };
+
+      const updateTouchCursor = (point, isActive) => {
+        if (!point) {
+          touchCursor.classList.remove("active");
+          return;
+        }
+
+        const rect = frame.getBoundingClientRect();
+        touchCursor.style.left = `${point.clientX - rect.left}px`;
+        touchCursor.style.top = `${point.clientY - rect.top}px`;
+        touchCursor.classList.toggle("active", isActive);
+      };
+
+      const dispatchPointerAsMouse = (type, point) => {
+        const target = getInteractionTarget();
+        if (!target || !point) {
+          return;
+        }
+
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          clientX: point.clientX,
+          clientY: point.clientY,
+          screenX: point.screenX,
+          screenY: point.screenY,
+          button: 0,
+          buttons: type === "mouseup" ? 0 : 1,
+        });
+
+        target.dispatchEvent(event);
+      };
+
+      const findTrackedTouch = (touchList) => {
+        if (activeTouchId === null) {
+          return null;
+        }
+
+        for (const touch of touchList) {
+          if (touch.identifier === activeTouchId) {
+            return touch;
+          }
+        }
+
+        return null;
       };
 
       const setActiveSettingsTab = (tabName) => {
@@ -665,6 +750,64 @@
         localStorage.removeItem(QUALITY_KEY);
         window.location.reload();
       });
+
+      frame.addEventListener("touchstart", (event) => {
+        if (document.body.dataset.device !== "mobile") {
+          return;
+        }
+
+        if (activeTouchId !== null) {
+          return;
+        }
+
+        const touch = event.changedTouches[0];
+        if (!touch) {
+          return;
+        }
+
+        activeTouchId = touch.identifier;
+        lastTouchPoint = touch;
+        updateTouchCursor(touch, true);
+        dispatchPointerAsMouse("mousemove", touch);
+        dispatchPointerAsMouse("mousedown", touch);
+        event.preventDefault();
+      }, { passive: false });
+
+      frame.addEventListener("touchmove", (event) => {
+        if (document.body.dataset.device !== "mobile") {
+          return;
+        }
+
+        const touch = findTrackedTouch(event.changedTouches) || findTrackedTouch(event.touches);
+        if (!touch) {
+          return;
+        }
+
+        lastTouchPoint = touch;
+        updateTouchCursor(touch, true);
+        dispatchPointerAsMouse("mousemove", touch);
+        event.preventDefault();
+      }, { passive: false });
+
+      const endTouchTracking = (event) => {
+        if (document.body.dataset.device !== "mobile") {
+          return;
+        }
+
+        const touch = findTrackedTouch(event.changedTouches) || lastTouchPoint;
+        if (!touch) {
+          return;
+        }
+
+        dispatchPointerAsMouse("mouseup", touch);
+        activeTouchId = null;
+        lastTouchPoint = null;
+        updateTouchCursor(null, false);
+        event.preventDefault();
+      };
+
+      frame.addEventListener("touchend", endTouchTracking, { passive: false });
+      frame.addEventListener("touchcancel", endTouchTracking, { passive: false });
 
       settingsButton.addEventListener("click", () => {
         const isOpen = settingsButton.getAttribute("aria-expanded") === "true";
