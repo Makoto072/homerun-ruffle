@@ -23,6 +23,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100dvh;
       font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
       color: var(--text);
       background:
@@ -31,6 +32,7 @@
       display: grid;
       place-items: center;
       padding: 24px;
+      overscroll-behavior: none;
     }
 
     main {
@@ -100,6 +102,8 @@
       flex: 1;
       accent-color: #ffd166;
       cursor: pointer;
+      min-height: 36px;
+      touch-action: manipulation;
     }
 
     #game-shell {
@@ -125,12 +129,86 @@
     @media (max-width: 720px) {
       body {
         padding: 12px;
+        display: block;
+      }
+
+      main {
+        min-height: calc(100dvh - 24px);
+        border-radius: 20px;
       }
 
       header,
       #game-shell {
         padding-left: 14px;
         padding-right: 14px;
+      }
+
+      header {
+        padding-top: 16px;
+        padding-bottom: 8px;
+      }
+
+      .topbar {
+        align-items: stretch;
+      }
+
+      .topbar > div:first-child {
+        width: 100%;
+      }
+
+      h1 {
+        font-size: clamp(24px, 8vw, 34px);
+      }
+
+      p {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .volume-panel {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 12px 12px;
+      }
+
+      .volume-label {
+        font-size: 12px;
+      }
+
+      .volume-value {
+        min-width: 48px;
+        font-size: 15px;
+      }
+
+      #game-shell {
+        padding-top: 6px;
+        padding-bottom: 14px;
+      }
+
+      #game-frame {
+        height: min(68dvh, calc(100dvh - 190px));
+        min-height: 320px;
+        aspect-ratio: auto;
+        border-radius: 16px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      body {
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(8px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(8px, env(safe-area-inset-left));
+      }
+
+      main {
+        min-height: calc(100dvh - 16px);
+      }
+
+      #game-frame {
+        height: min(64dvh, calc(100dvh - 176px));
+        min-height: 280px;
       }
     }
   </style>
