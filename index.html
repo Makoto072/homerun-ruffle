@@ -580,9 +580,14 @@
       const ignoredListeners = new WeakSet();
       const storedRuffleListeners = new WeakMap();
       const originalAddEventListener = EventTarget.prototype.addEventListener;
+      const MOBILE_SWING_HOLD_MS = 500;
+      const MOBILE_TAP_HOLD_MS = 40;
+      const MOBILE_DRAG_THRESHOLD_PX = 12;
       let currentQuality = "high";
       let activeTouchId = null;
       let lastTouchPoint = null;
+      let touchStartPoint = null;
+      let touchMoveDistance = 0;
 
       const isRuffleInputTarget = (target) => target instanceof HTMLElement && (
         target.id === "container" ||
@@ -756,14 +761,14 @@
         stopPropagation() {},
       });
 
-      const triggerReleaseSwing = (point) => {
+      const triggerReleaseSwing = (point, holdMs) => {
         relayMobilePointer("pointermove", point, 0);
         relayMobilePointer("pointerdown", point, 1);
 
         window.setTimeout(() => {
           relayMobilePointer("pointerup", point, 0);
           relayMobilePointer("click", point, 0);
-        }, 500);
+        }, holdMs);
       };
 
       const setupMobilePointerInterception = () => {
@@ -790,6 +795,8 @@
 
           activeTouchId = event.pointerId;
           lastTouchPoint = event;
+          touchStartPoint = createPointSnapshot(event);
+          touchMoveDistance = 0;
           relayMobilePointer("pointermove", event, 0);
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -806,6 +813,14 @@
           }
 
           lastTouchPoint = event;
+          if (touchStartPoint) {
+            const deltaX = event.clientX - touchStartPoint.clientX;
+            const deltaY = event.clientY - touchStartPoint.clientY;
+            touchMoveDistance = Math.max(
+              touchMoveDistance,
+              Math.hypot(deltaX, deltaY)
+            );
+          }
           relayMobilePointer("pointermove", event, 0);
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -822,9 +837,14 @@
           }
 
           const finalPoint = createPointSnapshot(lastTouchPoint || event);
-          triggerReleaseSwing(finalPoint);
+          const holdMs = touchMoveDistance >= MOBILE_DRAG_THRESHOLD_PX
+            ? MOBILE_SWING_HOLD_MS
+            : MOBILE_TAP_HOLD_MS;
+          triggerReleaseSwing(finalPoint, holdMs);
           activeTouchId = null;
           lastTouchPoint = null;
+          touchStartPoint = null;
+          touchMoveDistance = 0;
           event.preventDefault();
           event.stopImmediatePropagation();
         };
@@ -836,6 +856,8 @@
 
           activeTouchId = null;
           lastTouchPoint = null;
+          touchStartPoint = null;
+          touchMoveDistance = 0;
           event.preventDefault();
           event.stopImmediatePropagation();
         };
