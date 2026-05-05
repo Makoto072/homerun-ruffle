@@ -713,12 +713,17 @@
         }
 
         for (const currentTarget of getPointerPath()) {
+          const targetRect = typeof currentTarget.getBoundingClientRect === "function"
+            ? currentTarget.getBoundingClientRect()
+            : null;
           const proxyEvent = createPointerProxy(sourceEvent, {
             type,
             button: type === "pointermove" ? -1 : 0,
             buttons,
             currentTarget,
             isPrimary: true,
+            offsetX: targetRect ? sourceEvent.clientX - targetRect.left : 0,
+            offsetY: targetRect ? sourceEvent.clientY - targetRect.top : 0,
             pointerId: 1,
             pointerType: "mouse",
             pressure: buttons === 0 ? 0 : 0.5,
@@ -727,6 +732,38 @@
 
           callStoredRuffleListeners(currentTarget, type, proxyEvent);
         }
+      };
+
+      const createPointSnapshot = (event) => ({
+        clientX: event.clientX,
+        clientY: event.clientY,
+        defaultPrevented: false,
+        eventPhase: 0,
+        isTrusted: true,
+        pageX: event.pageX,
+        pageY: event.pageY,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+        composedPath() {
+          return [];
+        },
+        screenX: event.screenX,
+        screenY: event.screenY,
+        movementX: event.movementX ?? 0,
+        movementY: event.movementY ?? 0,
+        stopImmediatePropagation() {},
+        stopPropagation() {},
+      });
+
+      const triggerReleaseSwing = (point) => {
+        relayMobilePointer("pointermove", point, 0);
+        relayMobilePointer("pointerdown", point, 1);
+
+        window.setTimeout(() => {
+          relayMobilePointer("pointerup", point, 0);
+          relayMobilePointer("click", point, 0);
+        }, 48);
       };
 
       const setupMobilePointerInterception = () => {
@@ -784,11 +821,8 @@
             return;
           }
 
-          const finalPoint = lastTouchPoint || event;
-          relayMobilePointer("pointermove", finalPoint, 0);
-          relayMobilePointer("pointerdown", finalPoint, 1);
-          relayMobilePointer("pointerup", finalPoint, 0);
-          relayMobilePointer("click", finalPoint, 0);
+          const finalPoint = createPointSnapshot(lastTouchPoint || event);
+          triggerReleaseSwing(finalPoint);
           activeTouchId = null;
           lastTouchPoint = null;
           event.preventDefault();
