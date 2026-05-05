@@ -763,7 +763,7 @@
         window.setTimeout(() => {
           relayMobilePointer("pointerup", point, 0);
           relayMobilePointer("click", point, 0);
-        }, 48);
+        }, 500);
       };
 
       const setupMobilePointerInterception = () => {
@@ -884,6 +884,7 @@
 
       const loadMovie = () => {
         player.ruffle().load({
+          contextMenu: "off",
           url: MOVIE_URL,
           quality: currentQuality
         });
