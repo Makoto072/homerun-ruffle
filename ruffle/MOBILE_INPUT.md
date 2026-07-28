@@ -6,11 +6,13 @@ This self-hosted Ruffle build is based on upstream commit
 option used by this site.
 
 When enabled, a touch pointer updates the Flash mouse position while it is
-held. Ruffle does not send `MouseDown` at touch start. On `pointerup` from the
-same finger it sends, in order, `MouseMove`, `MouseDown`, and `MouseUp` at the
-release position. `pointercancel` clears the active finger without sending a
-click. Only touch pointers use this path; mouse and other desktop input keep
-the upstream behavior.
+held. Ruffle does not send `MouseDown` at touch start. A short stationary tap
+uses a normal immediate `MouseMove`, `MouseDown`, and `MouseUp` sequence so
+the SWF menu buttons work normally. A hold of 350ms or more, or a drag of at
+least 12 CSS pixels, sends the click at release and keeps it pressed for 500ms
+to implement release-to-swing input. `pointercancel` clears the active finger
+without sending a click. Only touch pointers use this path; mouse and other
+desktop input keep the upstream behavior.
 
 The page enables this option only when its device detection selects mobile:
 
