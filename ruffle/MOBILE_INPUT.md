@@ -7,13 +7,14 @@ option used by this site.
 
 When enabled, a touch pointer updates the Flash mouse position while it is
 held. Ruffle does not send `MouseDown` at touch start. A stationary touch,
-regardless of its duration, uses a normal immediate `MouseMove`, `MouseDown`,
-and `MouseUp` sequence so the SWF menu buttons work independently of browser
-event timestamp behavior. A drag of at least 12 CSS pixels sends the click at
-release and keeps it pressed for 500ms to implement release-to-swing input.
-`pointercancel` clears the active finger without sending a click. Only touch
-pointers use this path; mouse and other desktop input keep the upstream
-behavior.
+regardless of its duration, sends an immediate `MouseMove`, `MouseDown`, and
+`MouseUp` sequence at release. If the same location is still a Flash button
+after 80ms, Ruffle retries that click once; this handles AVM1 menu buttons that
+otherwise require rapid repeated taps. A drag of at least 12 CSS pixels sends
+the click at release and keeps it pressed for 500ms to implement
+release-to-swing input. `pointercancel` clears the active finger without
+sending a click. Only touch pointers use this path; mouse and other desktop
+input keep the upstream behavior.
 
 The page enables this option only when its device detection selects mobile:
 
