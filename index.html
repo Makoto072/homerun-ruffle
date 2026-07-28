@@ -300,6 +300,18 @@
       z-index: 5;
     }
 
+    .mobile-touch-hint {
+      display: none;
+      margin: 12px 4px 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(7, 11, 24, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     body[data-device="mobile"] {
       padding: 12px;
       display: block;
@@ -345,6 +357,7 @@
 
     body[data-device="mobile"] ruffle-player {
       pointer-events: auto;
+      touch-action: manipulation;
     }
 
     body[data-device="mobile"] .settings-layout {
@@ -380,7 +393,11 @@
       min-height: 320px;
       aspect-ratio: auto;
       border-radius: 16px;
-      touch-action: none;
+      touch-action: manipulation;
+    }
+
+    body[data-device="mobile"] .mobile-touch-hint {
+      display: block;
     }
 
     body[data-device="mobile"][data-orientation="landscape"] #game-frame {
@@ -547,6 +564,7 @@
       <div id="game-frame">
         <div id="mobile-input-layer" class="mobile-input-layer" aria-hidden="true"></div>
       </div>
+      <p class="mobile-touch-hint">ボタンはタップ、打席ではドラッグして狙い、指を離すとスイングします。</p>
     </section>
   </main>
 
@@ -576,55 +594,7 @@
       const ruffle = window.RufflePlayer.newest();
       const frame = document.getElementById("game-frame");
       const userAgent = navigator.userAgent || "";
-      const trackedRuffleTypes = new Set(["click", "pointerdown", "pointermove", "pointerup"]);
-      const ignoredListeners = new WeakSet();
-      const storedRuffleListeners = new WeakMap();
-      const originalAddEventListener = EventTarget.prototype.addEventListener;
-      const MOBILE_SWING_HOLD_MS = 500;
-      const MOBILE_TAP_HOLD_MS = 40;
-      const MOBILE_DRAG_THRESHOLD_PX = 12;
       let currentQuality = "high";
-      let activeTouchId = null;
-      let lastTouchPoint = null;
-      let touchStartPoint = null;
-      let touchMoveDistance = 0;
-
-      const isRuffleInputTarget = (target) => target instanceof HTMLElement && (
-        target.id === "container" ||
-        target.tagName === "CANVAS" ||
-        target.tagName === "RUFFLE-PLAYER"
-      );
-
-      const rememberRuffleListener = (target, type, listener) => {
-        let targetListeners = storedRuffleListeners.get(target);
-        if (!targetListeners) {
-          targetListeners = new Map();
-          storedRuffleListeners.set(target, targetListeners);
-        }
-
-        let listeners = targetListeners.get(type);
-        if (!listeners) {
-          listeners = [];
-          targetListeners.set(type, listeners);
-        }
-
-        if (!listeners.includes(listener)) {
-          listeners.push(listener);
-        }
-      };
-
-      EventTarget.prototype.addEventListener = function(type, listener, options) {
-        if (
-          listener &&
-          !ignoredListeners.has(listener) &&
-          trackedRuffleTypes.has(type) &&
-          isRuffleInputTarget(this)
-        ) {
-          rememberRuffleListener(this, type, listener);
-        }
-
-        return originalAddEventListener.call(this, type, listener, options);
-      };
 
       const player = ruffle.createPlayer();
 
@@ -674,6 +644,23 @@
           || player;
       };
 
+      const isNativeTapZone = (point) => {
+        const rect = player.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+          return false;
+        }
+
+        const relativeX = (point.clientX - rect.left) / rect.width;
+        const relativeY = (point.clientY - rect.top) / rect.height;
+
+        return NATIVE_TAP_ZONES.some((zone) =>
+          relativeX >= zone.left &&
+          relativeX <= zone.right &&
+          relativeY >= zone.top &&
+          relativeY <= zone.bottom
+        );
+      };
+
       const getBlockingOverlay = () => {
         const shadowRoot = player.shadowRoot;
         const selectors = ["#play-button", "#unmute-overlay", "#message-overlay"];
@@ -711,7 +698,7 @@
         }
       };
 
-      const relayMobilePointer = (type, sourceEvent, buttons) => {
+      const relayStoredInput = (type, sourceEvent, buttons) => {
         const eventTarget = getPointTarget(sourceEvent);
         if (!eventTarget || !sourceEvent) {
           return;
@@ -721,22 +708,44 @@
           const targetRect = typeof currentTarget.getBoundingClientRect === "function"
             ? currentTarget.getBoundingClientRect()
             : null;
-          const proxyEvent = createPointerProxy(sourceEvent, {
+          const overrides = {
             type,
-            button: type === "pointermove" ? -1 : 0,
+            button: type.endsWith("move") ? -1 : 0,
             buttons,
             currentTarget,
-            isPrimary: true,
             offsetX: targetRect ? sourceEvent.clientX - targetRect.left : 0,
             offsetY: targetRect ? sourceEvent.clientY - targetRect.top : 0,
-            pointerId: 1,
-            pointerType: "mouse",
-            pressure: buttons === 0 ? 0 : 0.5,
             target: eventTarget,
-          });
+          };
 
+          if (type.startsWith("pointer")) {
+            Object.assign(overrides, {
+              isPrimary: true,
+              pointerId: 1,
+              pointerType: "mouse",
+              pressure: buttons === 0 ? 0 : 0.5,
+            });
+          }
+
+          const proxyEvent = createPointerProxy(sourceEvent, overrides);
           callStoredRuffleListeners(currentTarget, type, proxyEvent);
         }
+      };
+
+      const relayMobileMove = (sourceEvent) => {
+        relayStoredInput("pointermove", sourceEvent, 0);
+        relayStoredInput("mousemove", sourceEvent, 0);
+      };
+
+      const relayMobilePress = (sourceEvent) => {
+        relayStoredInput("pointerdown", sourceEvent, 1);
+        relayStoredInput("mousedown", sourceEvent, 1);
+      };
+
+      const relayMobileRelease = (sourceEvent) => {
+        relayStoredInput("pointerup", sourceEvent, 0);
+        relayStoredInput("mouseup", sourceEvent, 0);
+        relayStoredInput("click", sourceEvent, 0);
       };
 
       const createPointSnapshot = (event) => ({
@@ -762,16 +771,28 @@
       });
 
       const triggerReleaseSwing = (point, holdMs) => {
-        relayMobilePointer("pointermove", point, 0);
-        relayMobilePointer("pointerdown", point, 1);
+        relayMobileMove(point);
+        relayMobilePress(point);
 
         window.setTimeout(() => {
-          relayMobilePointer("pointerup", point, 0);
-          relayMobilePointer("click", point, 0);
+          relayMobileRelease(point);
+        }, holdMs);
+      };
+
+      const triggerTapClick = (point, holdMs) => {
+        relayMobileMove(point);
+        relayMobilePress(point);
+
+        window.setTimeout(() => {
+          relayMobileRelease(point);
         }, holdMs);
       };
 
       const setupMobilePointerInterception = () => {
+        // Touch input is translated in the custom Ruffle build so it stays in
+        // the trusted event path. Do not intercept or redispatch it here.
+        return;
+
         const targets = getPointerPath().filter((target) => target instanceof HTMLElement);
         if (targets.length === 0) {
           return;
@@ -793,11 +814,16 @@
             return;
           }
 
+          if (isNativeTapZone(event)) {
+            nativeTapTouchId = event.pointerId;
+            return;
+          }
+
           activeTouchId = event.pointerId;
           lastTouchPoint = event;
           touchStartPoint = createPointSnapshot(event);
           touchMoveDistance = 0;
-          relayMobilePointer("pointermove", event, 0);
+          relayMobileMove(event);
           event.preventDefault();
           event.stopImmediatePropagation();
         };
@@ -807,8 +833,12 @@
             document.body.dataset.device !== "mobile" ||
             event.pointerType !== "touch" ||
             getBlockingOverlay() ||
-            activeTouchId !== event.pointerId
+            (activeTouchId !== event.pointerId && nativeTapTouchId !== event.pointerId)
           ) {
+            return;
+          }
+
+          if (nativeTapTouchId === event.pointerId) {
             return;
           }
 
@@ -821,7 +851,7 @@
               Math.hypot(deltaX, deltaY)
             );
           }
-          relayMobilePointer("pointermove", event, 0);
+          relayMobileMove(event);
           event.preventDefault();
           event.stopImmediatePropagation();
         };
@@ -831,16 +861,29 @@
             document.body.dataset.device !== "mobile" ||
             event.pointerType !== "touch" ||
             getBlockingOverlay() ||
-            activeTouchId !== event.pointerId
+            (activeTouchId !== event.pointerId && nativeTapTouchId !== event.pointerId)
           ) {
             return;
           }
 
+          if (nativeTapTouchId === event.pointerId) {
+            nativeTapTouchId = null;
+            return;
+          }
+
           const finalPoint = createPointSnapshot(lastTouchPoint || event);
-          const holdMs = touchMoveDistance >= MOBILE_DRAG_THRESHOLD_PX
+          const isSwingGesture = touchMoveDistance >= MOBILE_DRAG_THRESHOLD_PX;
+          const releasePoint = isSwingGesture
+            ? finalPoint
+            : (touchStartPoint || finalPoint);
+          const holdMs = isSwingGesture
             ? MOBILE_SWING_HOLD_MS
             : MOBILE_TAP_HOLD_MS;
-          triggerReleaseSwing(finalPoint, holdMs);
+          if (isSwingGesture) {
+            triggerReleaseSwing(releasePoint, holdMs);
+          } else {
+            triggerTapClick(releasePoint, holdMs);
+          }
           activeTouchId = null;
           lastTouchPoint = null;
           touchStartPoint = null;
@@ -850,6 +893,11 @@
         };
 
         const handleMobilePointerCancel = (event) => {
+          if (nativeTapTouchId === event.pointerId) {
+            nativeTapTouchId = null;
+            return;
+          }
+
           if (activeTouchId !== event.pointerId) {
             return;
           }
@@ -908,7 +956,8 @@
         player.ruffle().load({
           contextMenu: "off",
           url: MOVIE_URL,
-          quality: currentQuality
+          quality: currentQuality,
+          releaseTouchClick: document.body.dataset.device === "mobile"
         });
       };
 
